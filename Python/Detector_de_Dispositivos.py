@@ -10,6 +10,7 @@ class NetworkScannerCLI:
     def __init__(self):
         self.running = False
         self.active_devices = []
+        self.last_scan_devices = []
 
         signal.signal(signal.SIGINT, self.signal_handler)
 
@@ -29,8 +30,20 @@ class NetworkScannerCLI:
             self.exit_script()
             return
 
-        self.active_devices = []
-        self.scan_network(direccion_red)
+        try:
+            while self.running:
+                self.active_devices = []
+                self.scan_network(direccion_red)
+
+                if self.active_devices != self.last_scan_devices:
+                    self.last_scan_devices = self.active_devices
+                    self.clear_screen()
+                    self.show_devices()
+
+                time.sleep(10)
+        except KeyboardInterrupt:
+            self.running = False
+            print("\nEscaneo detenido por el usuario.")
 
     def scan_network(self, ip):
         arp_request = ARP(pdst=ip)
@@ -43,8 +56,6 @@ class NetworkScannerCLI:
             device = {"IP": received.psrc, "MAC": mac}
             self.active_devices.append(device)
 
-        self.show_devices()
-
     def show_devices(self):
         if not self.active_devices:
             print("No se encontraron dispositivos activos en la red.")
@@ -53,7 +64,14 @@ class NetworkScannerCLI:
         table_headers = self.active_devices[0].keys()
         table_data = [list(device.values()) for device in self.active_devices]
         table = tabulate(table_data, headers=table_headers, tablefmt="fancy_grid")
+        print("Dispositivos activos en la red:")
         print(table)
+
+    def clear_screen(self):
+        if os.name == "posix":
+            os.system("clear")
+        else:
+            os.system("cls")
 
     def exit_script(self):
         self.running = False
