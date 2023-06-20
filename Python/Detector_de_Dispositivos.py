@@ -4,7 +4,7 @@ def validar_direccion_ip(ip):
     octetos = ip.split(".")
     
     # Verificar la cantidad de octetos
-    if len(octetos) != 4:
+    if len(octetos) != 3:
         return False
     
     # Verificar que cada octeto sea un número válido entre 0 y 255
