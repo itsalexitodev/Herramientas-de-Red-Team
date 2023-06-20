@@ -14,7 +14,7 @@ Asegúrate de tener Python 3.x instalado. Si no lo tienes, descárgalo desde el 
 Instala los paquetes requeridos ejecutando estos comandos en la terminal:
 
 
-pip install tabulate scapy
+`pip install tabulate scapy`
 
 
 ## Uso
@@ -22,7 +22,7 @@ pip install tabulate scapy
 ### Interfaz de línea de comandos (CLI)
 Ejecuta el script `network_scanner.py` con Python 3:
 
-python network_scanner.py
+`python network_scanner.py`
 
 
 Ingresa tu dirección de red en formato CIDR cuando se solicite:
@@ -39,7 +39,7 @@ Puedes detener el escaneo presionando Ctrl+C.
 ### Interfaz gráfica de usuario (GUI)
 Ejecuta el script `network_scanner_gui.py` con Python 3:
 
-python network_scanner_gui.py
+`python network_scanner_gui.py`
 
 Se abrirá una ventana de GUI.
 
