@@ -1,55 +1,81 @@
-import scapy.all as scapy
+import os
+import sys
+import signal
+import time
+from tabulate import tabulate
+from scapy.all import ARP, Ether, srp
 
-def validar_direccion_ip(ip):
-    octetos = ip.split(".")
-    
-    # Verificar la cantidad de octetos
-    if len(octetos) != 3:
-        return False
-    
-    # Verificar que cada octeto sea un número válido entre 0 y 255
-    for octeto in octetos:
-        if not octeto.isdigit() or int(octeto) > 255:
-            return False
-    
-    # Verificar que el último octeto no sea 255 ni 1
-    if octetos[3] == "255" or octetos[3] == "1":
-        return False
-    
-    return True
 
-def obtener_direccion_red(ip):
-    octetos = ip.split(".")
-    octetos[-1] = "0"  # Establecer el último octeto como 0 para obtener la dirección de red
-    direccion_red = ".".join(octetos)
-    return direccion_red
+class NetworkScanner:
+    def __init__(self):
+        self.running = False
+        self.active_devices = []
 
-def scan_network(ip):
-    arp_request = scapy.ARP(pdst=ip)
-    broadcast = scapy.Ether(dst="ff:ff:ff:ff:ff:ff")
-    arp_request_broadcast = broadcast/arp_request
-    answered_list = scapy.srp(arp_request_broadcast, timeout=1, verbose=False)[0]
-    
-    active_devices = []
-    for element in answered_list:
-        device = {"ip": element[1].psrc, "mac": element[1].hwsrc}
-        active_devices.append(device)
-    
-    return active_devices
+    def start_scan(self, direccion_red):
+        if self.running:
+            return
 
-# Solicitar al usuario la dirección de red
-direccion_red = input("Ingresa tu dirección de red: ")
+        self.running = True
+        self.active_devices = []
 
-# Validar la dirección de red ingresada
-if not validar_direccion_ip(direccion_red):
-    print("La dirección de red", direccion_red, "no es válida")
-    exit()
+        if not direccion_red:
+            print("Error: Ingresa una dirección de red válida.")
+            return
 
-# Obtener la dirección de red completa
-target_ip = obtener_direccion_red(direccion_red)
+        if not self.check_admin():
+            print("Error: Este script requiere privilegios de administrador para su ejecución.")
+            print("Por favor, ejecuta el script con privilegios de administrador.")
+            return
 
-active_devices = scan_network(target_ip)
+        print("Escaneando dispositivos en la red...")
 
-print("Dispositivos activos en la red:")
-for device in active_devices:
-    print("IP:", device["ip"], "MAC:", device["mac"])
+        try:
+            while self.running:
+                new_devices = self.scan_network(direccion_red)
+
+                if new_devices:
+                    if new_devices != self.active_devices:
+                        self.active_devices = new_devices
+
+                    table_headers = self.active_devices[0].keys()
+                    table_data = [list(device.values()) for device in self.active_devices]
+                    table = tabulate(table_data, headers=table_headers, tablefmt="fancy_grid")
+                    os.system("clear" if os.name == "posix" else "cls")
+                    print(table)
+                else:
+                    os.system("clear" if os.name == "posix" else "cls")
+                    print("No se encontraron dispositivos activos en la red.")
+
+                time.sleep(5)
+        except KeyboardInterrupt:
+            print("\nEscaneo detenido por el usuario.")
+
+    def scan_network(self, ip):
+        arp_request = ARP(pdst=ip)
+        ether = Ether(dst="ff:ff:ff:ff:ff:ff")
+        packet = ether/arp_request
+        result = srp(packet, timeout=3, verbose=0)[0]
+
+        active_devices = []
+        for sent, received in result:
+            mac = received.hwsrc
+            device = {"IP": received.psrc, "MAC": mac}
+            active_devices.append(device)
+
+        return active_devices
+
+    def check_admin(self):
+        if os.name != "posix":
+            return os.name == "nt" and os.getuid() == 0
+        else:
+            return os.getuid() == 0
+
+    def signal_handler(self, signal, frame):
+        self.running = False
+        print("\nEscaneo detenido por el usuario.")
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    scanner = NetworkScanner()
+    scanner.start_scan(input("Ingresa tu dirección de red en formato CIDR (ejemplo: xxx.xxx.xxx.xxx/xx): "))
