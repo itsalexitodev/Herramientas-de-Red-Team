@@ -9,8 +9,8 @@ from scapy.all import ARP, Ether, srp
 class NetworkScannerCLI:
     def __init__(self):
         self.running = False
-        self.active_devices = []
-        self.last_scan_devices = []
+        self.active_devices = set()
+        self.last_scan_devices = set()
 
         signal.signal(signal.SIGINT, self.signal_handler)
 
@@ -32,7 +32,7 @@ class NetworkScannerCLI:
 
         try:
             while self.running:
-                self.active_devices = []
+                self.active_devices = set()
                 self.scan_network(direccion_red)
 
                 if self.active_devices != self.last_scan_devices:
@@ -53,16 +53,16 @@ class NetworkScannerCLI:
 
         for sent, received in result:
             mac = received.hwsrc
-            device = {"IP": received.psrc, "MAC": mac}
-            self.active_devices.append(device)
+            device = (received.psrc, mac)
+            self.active_devices.add(device)
 
     def show_devices(self):
         if not self.active_devices:
             print("No se encontraron dispositivos activos en la red.")
             return
 
-        table_headers = self.active_devices[0].keys()
-        table_data = [list(device.values()) for device in self.active_devices]
+        table_headers = ["IP", "MAC"]
+        table_data = list(self.active_devices)
         table = tabulate(table_data, headers=table_headers, tablefmt="fancy_grid")
         print("Dispositivos activos en la red:")
         print(table)
