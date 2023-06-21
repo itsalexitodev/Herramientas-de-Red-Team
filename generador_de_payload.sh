@@ -4,7 +4,7 @@ default_path="/home/$USER/Desktop/Malware"
 database="Generación_de_payload"
 
 # Configuración de la base de datos en la nube
-db_host="172.0.01"
+db_host="172.0.0.1"
 db_port="3306"
 db_name="generador"
 db_user="alex"
