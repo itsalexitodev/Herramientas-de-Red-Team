@@ -4,11 +4,11 @@ default_path="/home/$USER/Desktop/Malware"
 database="Generación_de_payload"
 
 # Configuración de la base de datos en la nube
-db_host="172.0.0.1"
+db_host="172.0.01"
 db_port="3306"
 db_name="generador"
 db_user="root"
-db_password="##itsalexito__FN"
+db_password="##its.alexito__FN"
 
 check_admin() {
     if [[ $(id -u) != 0 ]]; then
@@ -30,35 +30,45 @@ check_mariadb() {
 create_database() {
     # Conexión a la base de datos en la nube utilizando los parámetros de configuración
     # Asegúrate de reemplazar los valores correspondientes
-    sudo mariadb -h $db_host -P $db_port -u $db_user -p$db_password -e "CREATE DATABASE IF NOT EXISTS $db_name;"
-    sudo mariadb -h $db_host -P $db_port -u $db_user -p$db_password -e "USE $db_name; CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(255), password VARCHAR(255));"
+    sudo mariadb -h $db_host -P $db_port -u $db_user -p$db_password <<EOF
+        CREATE DATABASE IF NOT EXISTS $db_name;
+        USE $db_name;
+        CREATE TABLE IF NOT EXISTS payloads (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            module VARCHAR(255),
+            lhost VARCHAR(255),
+            lport INT,
+            encoder VARCHAR(255),
+            file VARCHAR(255),
+            path VARCHAR(255)
+        );
+EOF
 }
 
-register_user() {
-    read -p "Ingrese el nombre de usuario: " username
-    read -s -p "Ingrese la contraseña: " password
-    echo
+insert_payload() {
+    module="$1"
+    lhost="$2"
+    lport="$3"
+    encoder="$4"
+    file="$5"
+    path="$6"
 
-    # Conexión a la base de datos en la nube para registrar el usuario
-    sudo mariadb -h $db_host -P $db_port -u $db_user -p$db_password -e "USE $db_name; INSERT INTO users (username, password) VALUES ('$username', '$password');"
-    echo "Usuario registrado correctamente."
+    # Conexión a la base de datos en la nube para insertar el payload
+    sudo mariadb -h $db_host -P $db_port -u $db_user -p$db_password <<EOF
+        USE $db_name;
+        INSERT INTO payloads (module, lhost, lport, encoder, file, path)
+        VALUES ('$module', '$lhost', $lport, '$encoder', '$file', '$path');
+EOF
 }
 
-login() {
-    read -p "Ingrese el nombre de usuario: " username
-    read -s -p "Ingrese la contraseña: " password
-    echo
-
-    # Conexión a la base de datos en la nube para verificar las credenciales del usuario
-    result=$(sudo mariadb -h $db_host -P $db_port -u $db_user -p$db_password -e "USE $db_name; SELECT username FROM users WHERE username='$username' AND password='$password';")
-
-    if [[ -n "$result" ]]; then
-        echo "Inicio de sesión exitoso."
-        return 0
-    else
-        echo "Credenciales inválidas. Inténtelo nuevamente."
-        return 1
-    fi
+list_payloads() {
+    echo "Tabla de payloads"
+    echo "================="
+    # Conexión a la base de datos en la nube para listar los payloads
+    sudo mariadb -h $db_host -P $db_port -u $db_user -p$db_password <<EOF
+        USE $db_name;
+        SELECT id, module, lhost, lport, file, path FROM payloads;
+EOF
 }
 
 check_admin
@@ -66,38 +76,6 @@ check_admin
 check_mariadb
 
 create_database
-
-while true; do
-    clear
-    echo "Menú"
-    echo "===="
-    echo "1. Registrarse"
-    echo "2. Iniciar sesión"
-    echo "3. Salir"
-    echo
-
-    read -p "Seleccione una opción: " choice
-
-    case $choice in
-        1)
-            register_user
-            ;;
-        2)
-            if login; then
-                echo "Inicio de sesión exitoso. ¡Bienvenido!"
-                break
-            fi
-            ;;
-        3)
-            exit 0
-            ;;
-        *)
-            echo "Opción inválida. Por favor, seleccione una opción válida."
-            ;;
-    esac
-
-    read -p "Presione Enter para continuar..."
-done
 
 payloads=("Android" "Linux" "macOS" "Windows")
 
@@ -110,7 +88,7 @@ while true; do
     echo "3. Salir"
     echo
 
-    read -p "Seleccione una opción: " choice
+    read -p "Selecciona una opción: " choice
 
     case $choice in
         1)
