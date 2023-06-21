@@ -3,6 +3,13 @@
 default_path="/home/$USER/Desktop/Malware"
 database="Generación_de_payload"
 
+check_admin() {
+    if [[ $(id -u) != 0 ]]; then
+        echo "Este script debe ejecutarse con privilegios de administrador."
+        exit 1
+    fi
+}
+
 check_mariadb_status() {
     service_status=$(sudo service mariadb status)
 
@@ -50,6 +57,8 @@ list_payloads() {
     echo "================="
     sudo mariadb -e "USE $database; SELECT * FROM payloads;"
 }
+
+check_admin
 
 check_mariadb
 
