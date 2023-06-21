@@ -7,7 +7,7 @@ database="Generación_de_payload"
 db_host="172.0.01"
 db_port="3306"
 db_name="generador"
-db_user="root"
+db_user="alex"
 db_password="##its.alexito__FN"
 
 check_admin() {
