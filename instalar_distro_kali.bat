@@ -23,4 +23,5 @@ Add-AppxPackage .\kali.appx
 REM Mostrar mensaje de finalización
 echo.
 echo La distribución Kali Linux se ha instalado correctamente.
+kali.exe
 pause
