@@ -3,6 +3,17 @@
 default_path="/home/$USER/Desktop/Malware"
 database="Generación_de_payload"
 
+check_mariadb_status() {
+    service_status=$(sudo service mariadb status)
+
+    if [[ $service_status == *"stopped"* ]]; then
+        echo "MariaDB está detenido. Se procederá a iniciarlo."
+        sudo service mariadb start
+    else
+        echo "MariaDB está en ejecución."
+    fi
+}
+
 check_mariadb() {
     if ! command -v mariadb &> /dev/null; then
         echo "MariaDB no está instalada. Se procederá con la instalación y configuración inicial."
@@ -13,6 +24,8 @@ check_mariadb() {
         sudo mysql_secure_installation
 
         echo "MariaDB ha sido instalada y configurada correctamente."
+    else
+        check_mariadb_status
     fi
 }
 
@@ -38,34 +51,25 @@ list_payloads() {
     sudo mariadb -e "USE $database; SELECT * FROM payloads;"
 }
 
-show_help() {
-    echo "Uso: sudo ./tu_script.sh -o <os> [-p <ruta>] [--help]"
+check_mariadb
+
+create_database
+
+os=""
+payloads=""
+encoders=""
+
+usage() {
+    echo "Uso: sudo ./Generación_de_payload.sh -o <os> [-p <ruta>] [--help]"
     echo "    -o <os>: Android, Linux, macOS o Windows"
     echo "    -p <ruta>: Ruta personalizada (opcional)"
     echo "    --help: Mostrar esta ayuda"
     exit 1
 }
 
-# Comprobar si se solicita ayuda
-if [[ "$1" == "--help" ]]; then
-    show_help
+if [ "$1" == "--help" ]; then
+    usage
 fi
-
-# Comprobar si se ejecuta como root
-if [[ $EUID -ne 0 ]]; then
-    echo "Este script debe ser ejecutado con privilegios de administrador (sudo)." 
-    exit 1
-fi
-
-# Comprobar si MariaDB está instalada y configurada
-check_mariadb
-
-# Crear la base de datos y la tabla de payloads
-create_database
-
-os=""
-payloads=""
-encoders=""
 
 while getopts "o:p:" opt; do
     case ${opt} in
@@ -76,7 +80,7 @@ while getopts "o:p:" opt; do
             custom_path=$OPTARG
             ;;
         *)
-            show_help
+            usage
             ;;
     esac
 done
@@ -84,28 +88,28 @@ done
 shift $((OPTIND - 1))
 
 if [ -z "$os" ]; then
-    show_help
+    usage
 fi
 
 case "$os" in
     Android)
         payloads=$(msfvenom --list payloads | grep -E "android/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{if (NR>2) {print $1}}')
+        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
         ;;
     Linux)
         payloads=$(msfvenom --list payloads | grep -E "linux/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{if (NR>2) {print $1}}')
+        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
         ;;
     macOS)
         payloads=$(msfvenom --list payloads | grep -E "osx/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{if (NR>2) {print $1}}')
+        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
         ;;
     Windows)
         payloads=$(msfvenom --list payloads | grep -E "windows/" | awk '{print NR, $1}')
-        encoders=$(msfvenom --list encoders | awk '{if (NR>2) {print $1}}')
+        encoders=$(msfvenom --list encoders | awk '{print NR, $1}')
         ;;
     *)
-        show_help
+        usage
         ;;
 esac
 
@@ -152,7 +156,7 @@ while true; do
             echo
 
             read -p "Selecciona el número de encoder: " encoder_number
-            selected_encoder=$(echo "$encoders" | awk -v num=$encoder_number 'NR==num{print $1}')
+            selected_encoder=$(echo "$encoders" | awk -v num=$encoder_number 'NR==num{print $2}')
 
             read -p "Nombre del archivo (sin extensión): " file
 
