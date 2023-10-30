@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='mi_proyecto',
+    name='network_scanner',
     version='1.0',
     description='Estas son las librerias para los programas network_scanner_gui y network_scanner',
     author='Alex Garcia Rodriguez',
